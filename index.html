@@ -4,9 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pannello Pagine - InDesign</title>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDK v9 (modulare) -->
+    <script type="module">
+        // Import delle funzioni Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        // Configurazione Firebase - SOSTITUISCI CON I TUOI VALORI
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvOoQ6YwRjYJQtYvNjMQJKzK9Xv-5XxYs", // SOSTITUISCI CON LA TUA API KEY
+            authDomain: "book-menabo-project.firebaseapp.com", // SOSTITUISCI CON IL TUO DOMAIN
+            projectId: "book-menabo-project", // SOSTITUISCI CON IL TUO PROJECT ID
+            storageBucket: "book-menabo-project.appspot.com", // SOSTITUISCI CON IL TUO BUCKET
+            messagingSenderId: "123456789012", // SOSTITUISCI CON IL TUO SENDER ID
+            appId: "1:123456789012:web:abcdef1234567890abcdef" // SOSTITUISCI CON LA TUA APP ID
+        };
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        // Esporta le funzioni per uso globale
+        window.firebaseApp = app;
+        window.db = db;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
+        window.serverTimestamp = serverTimestamp;
+        
+        // Avvia l'app quando Firebase è pronto
+        window.initApp();
+    </script>
     <style>
         * {
             margin: 0;
@@ -323,48 +352,32 @@
         </div>
     </div>
 
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyCmLRr5NIqjsCoc80Pudtc81N59j3EiVzA",
-    authDomain: "book-menabo-project.firebaseapp.com",
-    projectId: "book-menabo-project",
-    storageBucket: "book-menabo-project.firebasestorage.app",
-    messagingSenderId: "302567716325",
-    appId: "1:302567716325:web:531fc53a04a4767a41ab0c",
-    measurementId: "G-XN98EEVRG8"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
-        
+    <script>
         // Variabili globali
         let pages = [];
         let selectedPage = null;
-        let contextMenu = document.getElementById('contextMenu');
+        let contextMenu = null;
         let isLoading = false;
+        let projectRef = null;
         
-        // Referenza al documento del progetto
-        const PROJECT_ID = 'book-menabo-default'; // Puoi personalizzare questo ID
-        const projectRef = db.collection('projects').doc(PROJECT_ID);
+        // Costanti
+        const PROJECT_ID = 'book-menabo-default';
+
+        // Inizializza l'app quando Firebase è caricato
+        window.initApp = function() {
+            contextMenu = document.getElementById('contextMenu');
+            projectRef = window.doc(window.db, 'projects', PROJECT_ID);
+            loadPagesFromFirebase();
+        };
 
         // Funzioni Firebase
         async function loadPagesFromFirebase() {
             try {
                 updateFirebaseStatus('Caricamento dati...', 'loading');
                 
-                const doc = await projectRef.get();
-                if (doc.exists) {
-                    const data = doc.data();
+                const docSnap = await window.getDoc(projectRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
                     pages = data.pages || getDefaultPages();
                 } else {
                     // Primo accesso - crea il progetto con pagine di default
@@ -387,8 +400,8 @@
         }
 
         function setupRealtimeListener() {
-            projectRef.onSnapshot((doc) => {
-                if (doc.exists && !isLoading) {
+            window.onSnapshot(projectRef, (doc) => {
+                if (doc.exists() && !isLoading) {
                     const data = doc.data();
                     if (data.pages) {
                         pages = data.pages;
@@ -403,9 +416,9 @@
             
             try {
                 isLoading = true;
-                await projectRef.set({
+                await window.setDoc(projectRef, {
                     pages: pages,
-                    lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastModified: window.serverTimestamp(),
                     version: Date.now()
                 });
                 
@@ -424,8 +437,10 @@
 
         function updateFirebaseStatus(message, status) {
             const statusEl = document.getElementById('firebaseStatus');
-            statusEl.innerHTML = message;
-            statusEl.className = `firebase-status ${status}`;
+            if (statusEl) {
+                statusEl.innerHTML = message;
+                statusEl.className = `firebase-status ${status}`;
+            }
         }
 
         function getDefaultPages() {
@@ -667,8 +682,19 @@
         });
 
         // Inizializza l'applicazione
-        window.addEventListener('load', () => {
-            loadPagesFromFirebase();
+        document.addEventListener('DOMContentLoaded', function() {
+            // Se Firebase non è ancora caricato, aspetta
+            if (typeof window.initApp === 'function') {
+                window.initApp();
+            } else {
+                // Aspetta che Firebase sia caricato
+                const checkFirebase = setInterval(() => {
+                    if (typeof window.initApp === 'function') {
+                        clearInterval(checkFirebase);
+                        window.initApp();
+                    }
+                }, 100);
+            }
         });
     </script>
 </body>
