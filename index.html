@@ -9,7 +9,12 @@
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
-import { doc } from 'firebase/firestore';
+    import { doc } from 'firebase/firestore';
+
+<script src="https://www.gstatic.com/firebasejs/x.x.x/firebase-app-compat.js">
+<script src="https://www.gstatic.com/firebasejs/x.x.x/firebase-firestore-compat.js">
+
+    
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -26,9 +31,19 @@ import { doc } from 'firebase/firestore';
   };
 
   // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+ // const app = initializeApp(firebaseConfig);
+//  const analytics = getAnalytics(app);
 
+// Inizializza Firebase App
+const app = firebase.initializeApp(firebaseConfig);
+
+// Ottieni l'istanza di Firestore
+const db = app.firestore(); // Oppure firebase.firestore();
+
+// Se vuoi rendere 'db' disponibile globalmente (come sembra fare il tuo codice):
+window.db = db;
+
+// NON mettere qui importazioni come `import { doc } from 'firebase/firestore';` se usi i tag script normali.
 
     </script>
     <style>
