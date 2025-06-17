@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pannello Pagine - InDesign</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .panel {
+            background: #383838;
+            border-radius: 8px;
+            padding: 16px;
+            max-width: 400px;
+            margin: 0 auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .panel-header {
+            background: #4a4a4a;
+            margin: -16px -16px 16px -16px;
+            padding: 12px 16px;
+            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid #555;
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .pages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .page-row {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 0;
+            position: relative;
+        }
+
+        .page-row.single {
+            justify-content: center;
+        }
+
+        .page-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .page-preview {
+            width: 160px;
+            height: 200px;
+            background: #f8f8f8;
+            border: 2px solid #666;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .page-preview:hover {
+            border-color: #007acc;
+        }
+
+        .page-preview.selected {
+            border-color: #007acc;
+            box-shadow: 0 0 0 1px #007acc;
+        }
+
+        .page-preview.left {
+            border-radius: 6px 0 0 6px;
+            border-right: 1px solid #666;
+        }
+
+        .page-preview.right {
+            border-radius: 0 6px 6px 0;
+            border-left: 1px solid #666;
+        }
+
+        .page-preview.single {
+            border-radius: 6px;
+        }
+
+        .page-number {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .page-controls {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .control-btn {
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+
+
+        .lock-btn {
+            background: #666;
+            color: white;
+        }
+
+        .lock-btn.locked {
+            background: #f44336;
+        }
+
+        .status-indicator {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .status-to-start { background: #f44336; }
+        .status-in-progress { background: #FFC107; }
+        .status-in-review { background: #2196F3; }
+        .status-completed { background: #4CAF50; }
+        .status-closed { background: #9C27B0; }
+
+        .page-title {
+            margin-top: 8px;
+            width: 160px;
+        }
+
+        .title-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid transparent;
+            color: #e0e0e0;
+            font-size: 11px;
+            padding: 4px 6px;
+            border-radius: 3px;
+            text-align: center;
+        }
+
+        .title-input:focus {
+            outline: none;
+            border-color: #007acc;
+            background: #4a4a4a;
+        }
+
+        .title-input.left {
+            text-align: right;
+        }
+
+        .title-input.right {
+            text-align: left;
+        }
+
+        .context-menu {
+            position: absolute;
+            background: #4a4a4a;
+            border: 1px solid #666;
+            border-radius: 4px;
+            padding: 4px 0;
+            min-width: 120px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .context-menu-item {
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .context-menu-item:hover {
+            background: #555;
+        }
+
+        .context-menu-separator {
+            height: 1px;
+            background: #666;
+            margin: 4px 0;
+        }
+
+        .add-pages-btn {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 16px;
+            width: 100%;
+            transition: background 0.2s ease;
+        }
+
+        .add-pages-btn:hover {
+            background: #0056a3;
+        }
+
+        .page-paired {
+            margin-left: -2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">PAGINE</div>
+        </div>
+        
+        <div class="pages-container" id="pagesContainer">
+            <!-- Le pagine verranno generate dinamicamente -->
+        </div>
+        
+        <button class="add-pages-btn" onclick="addPages()">Aggiungi Pagine</button>
+        
+        <div class="context-menu" id="contextMenu">
+            <div class="context-menu-item" onclick="changeStatus('to-start')">🔴 Da Iniziare</div>
+            <div class="context-menu-item" onclick="changeStatus('in-progress')">🟡 In Corso</div>
+            <div class="context-menu-item" onclick="changeStatus('in-review')">🔵 In Revisione</div>
+            <div class="context-menu-item" onclick="changeStatus('completed')">🟢 Impaginata</div>
+            <div class="context-menu-item" onclick="changeStatus('closed')">🟣 Chiusa</div>
+            <div class="context-menu-separator"></div>
+            <div class="context-menu-item" onclick="duplicatePage()">Duplica Pagina</div>
+            <div class="context-menu-item" onclick="deletePage()">Elimina Pagina</div>
+        </div>
+    </div>
+
+    <script>
+        let pages = [
+            { id: 1, status: 'to-start', visible: true, locked: false, title: '', selected: false },
+            { id: 2, status: 'in-progress', visible: true, locked: false, title: '', selected: false },
+            { id: 3, status: 'in-progress', visible: true, locked: false, title: '', selected: false },
+            { id: 4, status: 'in-review', visible: true, locked: false, title: '', selected: false },
+            { id: 5, status: 'in-review', visible: true, locked: false, title: '', selected: false },
+            { id: 6, status: 'completed', visible: true, locked: false, title: '', selected: false },
+            { id: 7, status: 'completed', visible: true, locked: false, title: '', selected: false },
+            { id: 8, status: 'closed', visible: true, locked: true, title: '', selected: false }
+        ];
+
+        let selectedPage = null;
+        let contextMenu = document.getElementById('contextMenu');
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'to-start': 'status-to-start',
+                'in-progress': 'status-in-progress',
+                'in-review': 'status-in-review',
+                'completed': 'status-completed',
+                'closed': 'status-closed'
+            };
+            return statusMap[status] || 'status-to-start';
+        }
+
+        function getTitleAlignment(pageNumber) {
+            if (pageNumber === 1) return 'center';
+            return pageNumber % 2 === 0 ? 'right' : 'left';
+        }
+
+        function renderPages() {
+            const container = document.getElementById('pagesContainer');
+            container.innerHTML = '';
+
+            for (let i = 0; i < pages.length; i++) {
+                const page = pages[i];
+                
+                if (page.id === 1) {
+                    // Pagina 1 - singola
+                    const row = document.createElement('div');
+                    row.className = 'page-row single';
+                    row.appendChild(createPageElement(page, 'single'));
+                    container.appendChild(row);
+                } else if (page.id % 2 === 0 && i + 1 < pages.length) {
+                    // Pagine pari con la successiva dispari
+                    const row = document.createElement('div');
+                    row.className = 'page-row';
+                    
+                    const leftPage = createPageElement(page, 'left');
+                    const rightPage = createPageElement(pages[i + 1], 'right');
+                    rightPage.classList.add('page-paired');
+                    
+                    row.appendChild(leftPage);
+                    row.appendChild(rightPage);
+                    container.appendChild(row);
+                    i++; // Salta la prossima pagina perché già processata
+                } else if (page.id % 2 !== 0 && page.id !== 1) {
+                    // Pagina dispari senza coppia (caso edge)
+                    const row = document.createElement('div');
+                    row.className = 'page-row';
+                    row.appendChild(createPageElement(page, 'single'));
+                    container.appendChild(row);
+                }
+            }
+        }
+
+        function createPageElement(page, position) {
+            const pageItem = document.createElement('div');
+            pageItem.className = 'page-item';
+
+            const preview = document.createElement('div');
+            preview.className = `page-preview ${position} ${page.selected ? 'selected' : ''}`;
+            preview.innerHTML = `
+                <div class="page-number">${page.id}</div>
+                <div class="page-controls">
+                    <button class="control-btn lock-btn ${page.locked ? 'locked' : ''}" 
+                            onclick="toggleLock(${page.id})" title="Blocco">
+                        ${page.locked ? '🔒' : '🔓'}
+                    </button>
+                </div>
+                <div class="status-indicator ${getStatusClass(page.status)}"></div>
+                ${page.id}
+            `;
+
+            preview.onclick = (e) => selectPage(page.id, e);
+            preview.oncontextmenu = (e) => showContextMenu(e, page.id);
+
+            const titleContainer = document.createElement('div');
+            titleContainer.className = 'page-title';
+
+            const titleInput = document.createElement('input');
+            titleInput.type = 'text';
+            titleInput.className = `title-input ${getTitleAlignment(page.id)}`;
+            titleInput.value = page.title;
+            titleInput.placeholder = 'Titolo';
+            titleInput.maxLength = 22;
+            titleInput.onchange = (e) => updateTitle(page.id, e.target.value);
+            titleInput.onclick = (e) => e.stopPropagation();
+
+            titleContainer.appendChild(titleInput);
+            pageItem.appendChild(preview);
+            pageItem.appendChild(titleContainer);
+
+            return pageItem;
+        }
+
+        function selectPage(pageId, event) {
+            event.stopPropagation();
+            
+            // Deseleziona tutte le pagine
+            pages.forEach(p => p.selected = false);
+            
+            // Seleziona la pagina cliccata
+            const page = pages.find(p => p.id === pageId);
+            if (page) {
+                page.selected = true;
+                selectedPage = pageId;
+            }
+            
+            renderPages();
+        }
+
+        function showContextMenu(event, pageId) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            selectedPage = pageId;
+            selectPage(pageId, event);
+            
+            const rect = event.target.getBoundingClientRect();
+            const page = pages.find(p => p.id === pageId);
+            
+            // Posiziona il menu in base alla posizione della pagina
+            let menuX, menuY;
+            
+            if (pageId === 1 || pageId % 2 !== 0) {
+                // Pagina singola o dispari - menu a destra
+                menuX = rect.right + 10;
+            } else {
+                // Pagina pari - menu a sinistra
+                menuX = rect.left - 130;
+            }
+            
+            menuY = rect.top;
+            
+            // Assicurati che il menu rimanga visibile
+            if (menuX + 130 > window.innerWidth) {
+                menuX = window.innerWidth - 140;
+            }
+            if (menuX < 10) {
+                menuX = 10;
+            }
+            
+            contextMenu.style.left = menuX + 'px';
+            contextMenu.style.top = menuY + 'px';
+            contextMenu.style.display = 'block';
+        }
+
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+        }
+
+        function changeStatus(status) {
+            if (selectedPage) {
+                const page = pages.find(p => p.id === selectedPage);
+                if (page) {
+                    page.status = status;
+                    renderPages();
+                }
+            }
+            hideContextMenu();
+        }
+
+        function toggleLock(pageId) {
+            const page = pages.find(p => p.id === pageId);
+            if (page) {
+                page.locked = !page.locked;
+                renderPages();
+            }
+        }
+
+        function updateTitle(pageId, title) {
+            const page = pages.find(p => p.id === pageId);
+            if (page) {
+                page.title = title;
+            }
+        }
+
+        function duplicatePage() {
+            if (selectedPage) {
+                const page = pages.find(p => p.id === selectedPage);
+                if (page) {
+                    const newId = Math.max(...pages.map(p => p.id)) + 1;
+                    const newPage = { ...page, id: newId, title: page.title + ' (copia)', selected: false };
+                    pages.push(newPage);
+                    renderPages();
+                }
+            }
+            hideContextMenu();
+        }
+
+        function deletePage() {
+            if (selectedPage && pages.length > 1) {
+                const index = pages.findIndex(p => p.id === selectedPage);
+                if (index !== -1) {
+                    pages.splice(index, 1);
+                    selectedPage = null;
+                    renderPages();
+                }
+            }
+            hideContextMenu();
+        }
+
+        function addPages() {
+            const newId = Math.max(...pages.map(p => p.id)) + 1;
+            pages.push({ 
+                id: newId, 
+                status: 'to-start', 
+                visible: true, 
+                locked: false, 
+                title: '', 
+                selected: false 
+            });
+            renderPages();
+        }
+
+        // Event listeners
+        document.addEventListener('click', hideContextMenu);
+        document.addEventListener('contextmenu', (e) => {
+            if (!e.target.closest('.page-preview')) {
+                e.preventDefault();
+            }
+        });
+
+        // Inizializza l'interfaccia
+        renderPages();
+    </script>
+</body>
+</html>
