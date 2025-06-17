@@ -9,6 +9,7 @@
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
+import { doc } from 'firebase/firestore';
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -358,13 +359,15 @@
         const PROJECT_ID = 'book-menabo-default';
 
         // Inizializza l'app quando Firebase è caricato
-        window.initApp = function() {
-            contextMenu = document.getElementById('contextMenu');
-            projectRef = window.db.collection('projects').doc(PROJECT_ID); // Se window.db è un'istanza di Firestore e usi il metodo .doc()
 
-            loadPagesFromFirebase();
-        };
 
+// Dentro initApp:
+window.initApp = function() {
+    contextMenu = document.getElementById('contextMenu');
+    projectRef = doc(window.db, 'projects', PROJECT_ID); // Usiamo la funzione doc importata
+    loadPagesFromFirebase();
+};
+        
         // Funzioni Firebase
         async function loadPagesFromFirebase() {
             try {
