@@ -375,13 +375,18 @@ window.db = db;
 
         // Inizializza l'app quando Firebase è caricato
 
+//window.initApp = function() {
+  //  contextMenu = document.getElementById('contextMenu');
+   // projectRef = doc(window.db, 'projects', PROJECT_ID); // Usiamo la funzione doc importata
+    //loadPagesFromFirebase();
 
-// Dentro initApp:
 window.initApp = function() {
     contextMenu = document.getElementById('contextMenu');
-    projectRef = doc(window.db, 'projects', PROJECT_ID); // Usiamo la funzione doc importata
+    // Questa riga dovrebbe funzionare se window.db è l'istanza di Firestore
+    projectRef = window.db.collection('projects').doc(PROJECT_ID);
     loadPagesFromFirebase();
 };
+
         
         // Funzioni Firebase
         async function loadPagesFromFirebase() {
