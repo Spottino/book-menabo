@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pannello Pagine - InDesign</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -246,6 +249,50 @@
         .page-paired {
             margin-left: -2px;
         }
+
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        .loading-indicator::before {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border: 2px solid #666;
+            border-top: 2px solid #007acc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .firebase-status {
+            padding: 8px 12px;
+            background: #4a4a4a;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .firebase-status.connected {
+            background: #1b5e20;
+            color: #4caf50;
+        }
+
+        .firebase-status.error {
+            background: #d32f2f;
+            color: #ffcdd2;
+        }
     </style>
 </head>
 <body>
@@ -254,8 +301,12 @@
             <div class="panel-title">PAGINE</div>
         </div>
         
+        <div class="firebase-status" id="firebaseStatus">
+            <div class="loading-indicator">Connessione a Firebase...</div>
+        </div>
+        
         <div class="pages-container" id="pagesContainer">
-            <!-- Le pagine verranno generate dinamicamente -->
+            <!-- Le pagine verranno caricate da Firebase -->
         </div>
         
         <button class="add-pages-btn" onclick="addPages()">Aggiungi Pagine</button>
@@ -273,19 +324,112 @@
     </div>
 
     <script>
-        let pages = [
-            { id: 1, status: 'to-start', visible: true, locked: false, title: '', selected: false },
-            { id: 2, status: 'in-progress', visible: true, locked: false, title: '', selected: false },
-            { id: 3, status: 'in-progress', visible: true, locked: false, title: '', selected: false },
-            { id: 4, status: 'in-review', visible: true, locked: false, title: '', selected: false },
-            { id: 5, status: 'in-review', visible: true, locked: false, title: '', selected: false },
-            { id: 6, status: 'completed', visible: true, locked: false, title: '', selected: false },
-            { id: 7, status: 'completed', visible: true, locked: false, title: '', selected: false },
-            { id: 8, status: 'closed', visible: true, locked: true, title: '', selected: false }
-        ];
+        // Configurazione Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvOoQ6YwRjYJQtYvNjMQJKzK9Xv-5XxYs", // SOSTITUISCI CON LA TUA API KEY
+            authDomain: "book-menabo-project.firebaseapp.com", // SOSTITUISCI CON IL TUO DOMAIN
+            projectId: "book-menabo-project", // SOSTITUISCI CON IL TUO PROJECT ID
+            storageBucket: "book-menabo-project.appspot.com", // SOSTITUISCI CON IL TUO BUCKET
+            messagingSenderId: "123456789012", // SOSTITUISCI CON IL TUO SENDER ID
+            appId: "1:123456789012:web:abcdef1234567890abcdef" // SOSTITUISCI CON LA TUA APP ID
+        };
 
+        // Inizializza Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Variabili globali
+        let pages = [];
         let selectedPage = null;
         let contextMenu = document.getElementById('contextMenu');
+        let isLoading = false;
+        
+        // Referenza al documento del progetto
+        const PROJECT_ID = 'book-menabo-default'; // Puoi personalizzare questo ID
+        const projectRef = db.collection('projects').doc(PROJECT_ID);
+
+        // Funzioni Firebase
+        async function loadPagesFromFirebase() {
+            try {
+                updateFirebaseStatus('Caricamento dati...', 'loading');
+                
+                const doc = await projectRef.get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    pages = data.pages || getDefaultPages();
+                } else {
+                    // Primo accesso - crea il progetto con pagine di default
+                    pages = getDefaultPages();
+                    await saveToFirebase();
+                }
+                
+                updateFirebaseStatus('🌐 Connesso - Sincronizzazione attiva', 'connected');
+                renderPages();
+                
+                // Ascolta i cambiamenti in tempo reale
+                setupRealtimeListener();
+                
+            } catch (error) {
+                console.error('Errore caricamento:', error);
+                updateFirebaseStatus('❌ Errore connessione - Modalità offline', 'error');
+                pages = getDefaultPages();
+                renderPages();
+            }
+        }
+
+        function setupRealtimeListener() {
+            projectRef.onSnapshot((doc) => {
+                if (doc.exists && !isLoading) {
+                    const data = doc.data();
+                    if (data.pages) {
+                        pages = data.pages;
+                        renderPages();
+                    }
+                }
+            });
+        }
+
+        async function saveToFirebase() {
+            if (isLoading) return;
+            
+            try {
+                isLoading = true;
+                await projectRef.set({
+                    pages: pages,
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+                    version: Date.now()
+                });
+                
+                updateFirebaseStatus('💾 Salvato automaticamente', 'connected');
+                setTimeout(() => {
+                    updateFirebaseStatus('🌐 Connesso - Sincronizzazione attiva', 'connected');
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Errore salvataggio:', error);
+                updateFirebaseStatus('❌ Errore salvataggio', 'error');
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function updateFirebaseStatus(message, status) {
+            const statusEl = document.getElementById('firebaseStatus');
+            statusEl.innerHTML = message;
+            statusEl.className = `firebase-status ${status}`;
+        }
+
+        function getDefaultPages() {
+            return [
+                { id: 1, status: 'to-start', visible: true, locked: false, title: '', selected: false },
+                { id: 2, status: 'in-progress', visible: true, locked: false, title: '', selected: false },
+                { id: 3, status: 'in-progress', visible: true, locked: false, title: '', selected: false },
+                { id: 4, status: 'in-review', visible: true, locked: false, title: '', selected: false },
+                { id: 5, status: 'in-review', visible: true, locked: false, title: '', selected: false },
+                { id: 6, status: 'completed', visible: true, locked: false, title: '', selected: false },
+                { id: 7, status: 'completed', visible: true, locked: false, title: '', selected: false }
+            ];
+        }
 
         function getStatusClass(status) {
             const statusMap = {
@@ -441,6 +585,7 @@
                 if (page) {
                     page.status = status;
                     renderPages();
+                    saveToFirebase(); // Salva automaticamente
                 }
             }
             hideContextMenu();
@@ -451,6 +596,7 @@
             if (page) {
                 page.locked = !page.locked;
                 renderPages();
+                saveToFirebase(); // Salva automaticamente
             }
         }
 
@@ -458,6 +604,7 @@
             const page = pages.find(p => p.id === pageId);
             if (page) {
                 page.title = title;
+                saveToFirebase(); // Salva automaticamente
             }
         }
 
@@ -469,6 +616,7 @@
                     const newPage = { ...page, id: newId, title: page.title + ' (copia)', selected: false };
                     pages.push(newPage);
                     renderPages();
+                    saveToFirebase(); // Salva automaticamente
                 }
             }
             hideContextMenu();
@@ -481,6 +629,7 @@
                     pages.splice(index, 1);
                     selectedPage = null;
                     renderPages();
+                    saveToFirebase(); // Salva automaticamente
                 }
             }
             hideContextMenu();
@@ -497,6 +646,7 @@
                 selected: false 
             });
             renderPages();
+            saveToFirebase(); // Salva automaticamente
         }
 
         // Event listeners
@@ -507,8 +657,10 @@
             }
         });
 
-        // Inizializza l'interfaccia
-        renderPages();
+        // Inizializza l'applicazione
+        window.addEventListener('load', () => {
+            loadPagesFromFirebase();
+        });
     </script>
 </body>
 </html>
