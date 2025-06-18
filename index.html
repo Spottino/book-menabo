@@ -17,12 +17,12 @@
     <script>
         // PASSO 2a: La tua configurazione Firebase
         const firebaseConfig = {
-            apiKey: "QUI_LA_TUA_API_KEY", // Sostituisci con la tua API Key
+            apiKey: "AIzaSyBvOoQ6YwRjYJQtYvNjMQJKzK9Xv", // Sostituisci con la tua API Key
             authDomain: "book-menabo-project.firebaseapp.com", // Sostituisci se diverso
             projectId: "book-menabo-project", // Questo lo sappiamo :)
             storageBucket: "book-menabo-project.appspot.com", // Sostituisci se diverso
             messagingSenderId: "302567716325", // Sostituisci con il tuo Sender ID
-            appId: "QUI_IL_TUO_APP_ID", // Sostituisci con il tuo App ID Web
+            appId: "1:123456789012:web:abcdef1234567890abcdef", // Sostituisci con il tuo App ID Web
             // measurementId: "G-XXXXXXXXXX" // Aggiungi solo se usi Google Analytics per Firebase
         };
 
@@ -442,7 +442,7 @@ window.initApp = function() {
                 isLoading = true;
                 await window.setDoc(projectRef, {
                     pages: pages,
-                    lastModified: window.serverTimestamp(),
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp(),
                     version: Date.now()
                 });
                 
