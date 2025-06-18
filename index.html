@@ -4,45 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pannello Pagine - InDesign</title>
-    <!-- Firebase SDK v9 (modulare) -->
-<script src="https://www.gstatic.com/firebasejs/x.x.x/firebase-app-compat.js">
-<script src="https://www.gstatic.com/firebasejs/x.x.x/firebase-firestore-compat.js">
+  <!-- PASSO 1: Includi gli SDK di Firebase -->
+    <!-- Carica PRIMA firebase-app-compat.js (il core di Firebase) -->
+    <!-- Sostituisci x.x.x con la versione specifica che stai usando o l'ultima compatibile -->
+    <script src="https://www.gstatic.com/firebasejs/x.x.x/firebase-app-compat.js"></script>
 
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-analytics.js";
-    import { doc } from 'firebase/firestore';
+    <!-- Carica DOPO firebase-firestore-compat.js (il servizio Firestore) -->
+    <script src="https://www.gstatic.com/firebasejs/x.x.x/firebase-firestore-compat.js"></script>
 
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+    <!-- PASSO 2: Inserisci il tuo codice di inizializzazione e test -->
+    <!-- Questo blocco script deve venire DOPO i tag script di Firebase -->
+    <script>
+        // PASSO 2a: La tua configurazione Firebase
+        const firebaseConfig = {
+            apiKey: "QUI_LA_TUA_API_KEY", // Sostituisci con la tua API Key
+            authDomain: "book-menabo-project.firebaseapp.com", // Sostituisci se diverso
+            projectId: "book-menabo-project", // Questo lo sappiamo :)
+            storageBucket: "book-menabo-project.appspot.com", // Sostituisci se diverso
+            messagingSenderId: "302567716325", // Sostituisci con il tuo Sender ID
+            appId: "QUI_IL_TUO_APP_ID", // Sostituisci con il tuo App ID Web
+            // measurementId: "G-XXXXXXXXXX" // Aggiungi solo se usi Google Analytics per Firebase
+        };
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyCmLRr5NIqjsCoc80Pudtc81N59j3EiVzA",
-    authDomain: "book-menabo-project.firebaseapp.com",
-    projectId: "book-menabo-project",
-    storageBucket: "book-menabo-project.firebasestorage.app",
-    messagingSenderId: "302567716325",
-    appId: "1:302567716325:web:531fc53a04a4767a41ab0c",
-    measurementId: "G-XN98EEVRG8"
-  };
+        // PASSO 2b: Inizializza Firebase App e ottieni l'istanza di Firestore
+        // Questo codice viene eseguito non appena il browser carica questo script
+        try {
+            const app = firebase.initializeApp(firebaseConfig);
+            const db = app.firestore();
 
-  // Initialize Firebase
- // const app = initializeApp(firebaseConfig);
-//  const analytics = getAnalytics(app);
+            // PASSO 2c: TEST - Verifica in console se 'db' è definito
+            console.log("Firebase App initialized:", app);
+            console.log("Firestore instance obtained:", db);
 
-// Inizializza Firebase App
-const app = firebase.initializeApp(firebaseConfig);
+            // Puoi anche testare se le funzioni base esistono, usando il compat SDK
+            if (typeof db.collection === 'function') {
+                console.log("Firestore collection method is available.");
+            } else {
+                 console.error("Firestore collection method is NOT available.");
+            }
 
-// Ottieni l'istanza di Firestore
-const db = app.firestore(); // Oppure firebase.firestore();
+             if (typeof firebase.firestore.FieldValue.serverTimestamp === 'function') {
+                console.log("firebase.firestore.FieldValue.serverTimestamp is available.");
+            } else {
+                 console.error("firebase.firestore.FieldValue.serverTimestamp is NOT available.");
+            }
 
-// Se vuoi rendere 'db' disponibile globalmente (come sembra fare il tuo codice):
-window.db = db;
 
-// NON mettere qui importazioni come `import { doc } from 'firebase/firestore';` se usi i tag script normali.
+        } catch (error) {
+            console.error("Errore durante l'inizializzazione di Firebase:", error);
+        }
+
+
+    </script>
 
     </script>
     <style>
@@ -380,9 +393,8 @@ window.initApp = function() {
     projectRef = window.db.collection('projects').doc(PROJECT_ID);
     loadPagesFromFirebase();
 };
-
         
-        // Funzioni Firebase
+  // Funzioni Firebase
         async function loadPagesFromFirebase() {
             try {
                 updateFirebaseStatus('Caricamento dati...', 'loading');
